@@ -1,0 +1,273 @@
+DatabaseName:addressbook TableName:contact Fields:`id`,`name`, `email`, `phone`, `gender`, `course`, `language`
+import java.awt.*;
+import java.text.NumberFormat;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
+public class ContactView extends JFrame{
+	JPanel leftPanel = new JPanel(new GridLayout(9, 3));
+	JLabel jlbName = new JLabel("Name:");
+	JTextField jTxfName = new JTextField();
+	
+    JLabel jlbEmail = new JLabel("Email:");
+    JTextField jTxfEmail = new JTextField();
+    
+    JLabel jlbPhone = new JLabel("Phone:");
+
+    NumberFormat integerFormat = NumberFormat.getIntegerInstance();
+    JFormattedTextField jTxPhone = new JFormattedTextField(integerFormat);
+//    JTextField jTxPhone = new JTextField();
+    
+    JLabel jlbGender = new JLabel("Gender:");
+    ButtonGroup group = new ButtonGroup();
+    JRadioButton male = new JRadioButton("Male");    
+    JRadioButton female = new JRadioButton("Female");
+    
+    JLabel jlbCourse = new JLabel("Course:");
+    JCheckBox jChkJava = new JCheckBox("Java");
+    JCheckBox jChkPython = new JCheckBox("Python");
+    JCheckBox jChkC = new JCheckBox("C");
+    JCheckBox jChkPHP = new JCheckBox("PHP");
+    
+    JLabel jlbLan = new JLabel("Language:");
+    JComboBox<String> courseComboBox = new JComboBox<>(new String[]{"BCA", "BIT", "BIM", "BCS"});
+    
+    JButton jBtnSave = new JButton("Save");
+    JButton jBtnEdit = new JButton("Edit");
+    JButton jBtnCancel = new JButton("Cancel");
+
+    JPanel rightPanel = new JPanel();
+    
+    String[] columns = {"ID", "Name", "Email", "Phone", "Gender", "Course", "Language"};
+    
+    DefaultTableModel model = new DefaultTableModel(columns, 0);
+    JTable table = new JTable(model);
+
+    JScrollPane scrollPane = new JScrollPane(table);
+    public ContactView() {
+        setTitle("Address Book");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1200,800);
+        setLocationRelativeTo(null);
+        prepareGUI();
+        setVisible(true);   
+    }
+    
+    void prepareGUI() {
+        Container window = getContentPane();
+        window.setLayout(new GridLayout(1, 2));
+        
+        window.add(leftPanel);
+        leftPanel.setBorder(BorderFactory.createTitledBorder("Contact Edit"));
+
+        leftPanel.add(jlbName);
+        leftPanel.add(jTxfName);
+        leftPanel.add(new JLabel());
+        leftPanel.add(jlbEmail);
+        leftPanel.add(jTxfEmail);
+        leftPanel.add(new JLabel());
+        leftPanel.add(jlbPhone);
+        leftPanel.add(jTxPhone);
+        leftPanel.add(new JLabel());
+ 
+        group.add(male);
+        group.add(female);
+        
+        leftPanel.add(jlbGender);
+        leftPanel.add(male);
+        leftPanel.add(female);
+        
+        leftPanel.add(jlbCourse);
+        leftPanel.add(courseComboBox);
+        leftPanel.add(new JLabel());
+        
+        leftPanel.add(jlbLan);
+        leftPanel.add(jChkJava);
+        leftPanel.add(jChkPython);
+
+        leftPanel.add(new JLabel());
+        leftPanel.add(jChkC);
+        leftPanel.add(jChkPHP);
+        
+
+        leftPanel.add(jBtnSave);
+        leftPanel.add(jBtnEdit);
+        leftPanel.add(jBtnCancel);
+        
+        window.add(rightPanel);
+        rightPanel.setBorder(BorderFactory.createTitledBorder("Address Book"));
+
+        rightPanel.add(scrollPane);
+    }
+}
+
+
+
+
+FileName:ContactController.java
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+
+import javax.swing.*;
+
+public class ContactController implements ActionListener{
+	ContactView view = new ContactView();
+	//		ContactModel model = new ContactModel();
+	DBConnect dbConnect = new DBConnect();
+	public ContactController() throws SQLException {
+
+		view.jBtnSave.addActionListener(this);	
+
+
+	}
+	public void viewContacts() throws SQLException{
+		view.model.setRowCount(0);
+		
+		ResultSet rsv = dbConnect.showContacts();
+		while (rsv.next()) {
+			int id = rsv.getInt("id");
+			String name = rsv.getString("name");
+			String email = rsv.getString("email");
+			long phone = rsv.getLong("phone");
+			String gender = rsv.getString("gender");
+			String course = rsv.getString("course");
+			String language = rsv.getString("language");
+			//          System.out.print(name);
+			Object[] row = {id, name, email, phone, gender, course, language};
+			view.model.addRow(row);
+		}
+	}
+	@Override
+	public void actionPerformed(ActionEvent e) {
+			if (e.getSource() == view.jBtnSave) {
+				String name = view.jTxfName.getText().toString();
+				String email = view.jTxfName.getText().toString();
+				int phone = Integer.parseInt(view.jTxPhone.getValue().toString());
+				String gender="None";
+				if (view.male.isSelected()) {
+					// Male radio button is selected
+					gender = "Male";
+				} else if (view.female.isSelected()) {
+					// Female radio button is selected
+					gender = "Female";
+				}
+				String selectedCourse = (String) view.courseComboBox.getSelectedItem();
+				ArrayList<String> list = new ArrayList<>();
+
+				if (view.jChkJava.isSelected()) {
+					list.add("Java");
+				}
+
+				if (view.jChkPython.isSelected()) {
+					list.add("Python");
+				}
+
+				if (view.jChkC.isSelected()) {
+					list.add("C++");
+				}
+
+				if (view.jChkPHP.isSelected()) {
+					list.add("PHP");
+				}
+
+				String selectedLanguages = String.join(",", list);
+				try {
+					dbConnect.savetodatabase(name, email, phone, gender, selectedCourse, selectedLanguages);
+				} catch (ClassNotFoundException e1) {
+					e1.printStackTrace();
+				} catch (SQLException e1) {
+					e1.printStackTrace();
+				}
+
+				try {
+					viewContacts();
+				} catch (SQLException e1) {
+					e1.printStackTrace();
+				}
+
+			} else {
+				JOptionPane.showMessageDialog(null, "NOT SUPORTED");
+			}
+
+		}
+
+		public static void main(String[] args) throws SQLException {
+			new ContactController();
+
+		}
+
+
+}
+
+
+FileName:DBConnect.java
+import java.sql.*;
+
+public class DBConnect {
+private Connection connection;
+void connect() throws SQLException {
+	try {
+		Class.forName("com.mysql.cj.jdbc.Driver");
+	} catch (ClassNotFoundException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+    String url = "jdbc:mysql://localhost/addressbook";
+    String username = "root";
+    String password = "";
+    connection = DriverManager.getConnection(url, username, password);
+	
+}
+  public void savetodatabase(String name, String email, int phone ,String gender, String course, String language) throws SQLException, ClassNotFoundException {
+	  connect();
+	  try {
+		
+	    String query = "SELECT COUNT(*) FROM contact";
+	    PreparedStatement stmt = connection.prepareStatement(query);
+	                ResultSet resultSet = stmt.executeQuery();
+	                resultSet.next();
+	                int count = resultSet.getInt(1);
+	    
+	    query = "INSERT INTO `contact`(`id`,`name`, `email`, `phone`, `gender`, `course`, `language`) VALUES (?,?,?,?,?,?,?)";
+	    stmt = connection.prepareStatement(query);
+	    stmt.setInt(1, count+1);
+	    stmt.setString(2, name);
+	    stmt.setString(3, email);
+	    stmt.setInt(4, phone);
+	    stmt.setString(5, gender);
+	    stmt.setString(6, course);
+	    stmt.setString(7, language);
+
+	      int rowsInserted = stmt.executeUpdate();
+	      System.out.println(rowsInserted + " rows inserted");
+
+	      stmt.close();
+	      connection.close();
+		
+	} catch (SQLException e) {
+		e.printStackTrace();
+	}
+	
+  }
+  public ResultSet showContacts() throws SQLException {
+	  connect();
+	  String query = "SELECT * FROM contact";
+	  ResultSet rs = null;
+	  try {
+		  PreparedStatement stmt = connection.prepareStatement(query);
+		  rs = stmt.executeQuery();
+	      
+	  } catch (SQLException e) {
+		  // TODO Auto-generated catch block
+		  e.printStackTrace();
+	  }
+	 
+	return rs;  
+  }
+}
+
